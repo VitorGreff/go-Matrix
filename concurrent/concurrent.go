@@ -19,7 +19,7 @@ func Multiply(a, b utils.Matrix) (utils.Matrix, error) {
 	}
 
 	result := make([][]float64, a.Rows)
-	results := make(chan Result)
+	ch := make(chan Result)
 	var wg sync.WaitGroup
 
 	for i := range a.Rows {
@@ -33,17 +33,17 @@ func Multiply(a, b utils.Matrix) (utils.Matrix, error) {
 				for k := range a.Cols {
 					sum += a.Data[i][k] * b.Data[k][j]
 				}
-				results <- Result{value: sum, row: i, col: j}
+				ch <- Result{value: sum, row: i, col: j}
 			}(i, j)
 		}
 	}
 
 	go func() {
 		wg.Wait()
-		close(results)
+		close(ch)
 	}()
 
-	for i := range results {
+	for i := range ch {
 		result[i.row][i.col] = i.value
 	}
 	return utils.Matrix{Data: result, Rows: a.Rows, Cols: b.Cols}, nil
